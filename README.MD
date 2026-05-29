@@ -1,75 +1,86 @@
-# Telegram @notify_log_bot
+# Telegram Notify Log Bot API
 
-Mengirim notifikasi menggunakan Bot Telegram dengan format menarik,intuitif dan mudah di pahami.
+Service API berbasis Node.js & Express untuk mengirimkan notifikasi/log/error terformat ke Telegram secara terenkripsi menggunakan token/key unik per Chat ID.
 
-## Persyaratan
-* Vercel
-* Ngrox
-* NodeJs
+## 🛠️ Environment Variables (.env)
+Salin `.env.example` ke `.env` dan lengkapi konfigurasi berikut:
+```env
+APP_PORT=3000
+APP_KEY=      # Key 32-karakter untuk enkripsi AES-256
+IV_SECRET=    # 16-byte hex IV untuk enkripsi
+APP_URL=      # URL publik (Ngrok/Vercel) untuk webhook Telegram
+TELEGRAM_BOT_TOKEN=  # Token dari BotFather
+TIMEZONE=Asia/Jakarta
+TELEGRAM_DETAIL_MAX_LENGTH=1000 # Batas karakter detail log sebelum dijadikan file (.json / .txt)
+```
 
-## Langkah instalasi
-1. Clone repository
-   ```bash
-   git clone https://github.com/imamnurhy/telegram-bot-4p1.git
-   ```
-2. Install depedency
+## 🚀 Jalankan Aplikasi
+1. **Instal Dependensi:**
    ```bash
    npm install
    ```
-3. Buat kunci dan konfitutasi enviroment
-    > Buat secret key dengan perintah yang ada di Cheat Sheet 🤖
+2. **Jalankan Lokal dengan Webhook (Ngrok):**
+   - Jalankan Ngrok untuk expose port lokal ke publik:
+     ```bash
+     ngrok http 3000
+     ```
+   - Salin URL HTTPS dari Ngrok ke variabel `APP_URL` di `.env`.
+   - Jalankan server development:
+     ```bash
+     npm run dev
+     # ATAU menggunakan vercel dev
+     vercel dev
+     ```
 
-## Menjalankan Ngrok
+## 🤖 Cara Mendapatkan Access Key
+Untuk dapat mengirim notifikasi ke chat/grup Anda, Anda membutuhkan `x-api-key`:
+1. Buka Bot Telegram Anda.
+2. Kirim perintah `/subscribe` atau `/start subscribe`.
+3. Klik tombol **Request Kode** yang muncul. Bot akan membalas dengan kode enkripsi Chat ID Anda (gunakan kode ini sebagai `x-api-key`).
 
-Ngrok digunakan sebagai webhook untuk berinteraksi dengan bot telegram.
+## 📨 API Endpoint: Mengirim Notifikasi
+Kirim notifikasi dengan melakukan POST request ke endpoint `/api/message`.
 
+* **Endpoint:** `POST /api/message`
+* **Headers:**
+  * `x-api-key`: `<Access Key dari Bot>`
+  * `Content-Type`: `application/json` atau `application/x-www-form-urlencoded`
+* **Body:**
+  * `title` (Wajib, String): Judul pesan.
+  * `message` (Wajib, String): Detail pesan.
+  * `code` (Opsional, Number): HTTP Status Code (misal: 500, 200). Kode 400-511 otomatis ditandai ikon ❗.
+  * `detail` (Opsional, String/JSON): Log detail teknis (otomatis diformat dalam block code JSON atau dilampirkan sebagai file jika terlalu panjang).
+  * `datetime` (Opsional, Date/String): Waktu kejadian.
+  * `style` (Opsional, String): Gaya tampilan pesan. Pilihan: `card` (default), `minimalist`, atau `compact`.
+
+### Contoh Request (cURL):
 ```bash
-ngrok http 3000
+curl --location 'https://<domain-anda>/api/message' \
+--header 'x-api-key: <Access Key Anda>' \
+--header 'Content-Type: application/json' \
+--data '{
+    "title": "Database Connection Error",
+    "message": "Gagal terhubung ke database PostgreSQL",
+    "code": 500,
+    "detail": "{\"error\": \"Connection timeout after 5000ms\"}",
+    "datetime": "2026-05-29T19:50:00Z",
+    "style": "card"
+}'
 ```
 
-## Jalankan bot dengan Vercel (local)
-```bash
-vercel dev
-```
-> Pastikan APP_URL nya mengarah ke url `ngrok` untuk berinteraksi dengan bot agar dapat akses key nya dengan perintah `/subscribe`
-
-## Mengirim pesan dengan BOT
-Sebelum mengirim pesan dengan bot matikan dulu `vercel` agar dapat menjalankan
-```bash
-npm run dev
-```
-
-### Contoh pengiriman pesan
-```bash
-curl --location 'https://<domain>/api/message' \
---header 'Content-Type: application/x-www-form-urlencoded' \
---header 'x-api-key: <Key dari BOT>' \
---data-urlencode 'code=200' \
---data-urlencode 'title=Example' \
---data-urlencode 'message=Text'
-```
-
-## Konfigurasi Webhook (Manual)
-1. Memeriksa webhok yang aktif
-   ``` bash 
-   curl --location 'https://api.telegram.org/bot<BOT_TOKEN>/getWebhookInfo'
-   ```
-2. Membuat dan memperbaharui url `webhook`
-   ```bash
-   curl --location 'https://api.telegram.org/bot<BOT_TOKEN>' \
-    --header 'Content-Type: application/json' \
-    --data '{
-    "url": "https://<domain>/api/webhook"
-    }'
-    ```
-3. Menghapus `webhook`
-    ```bash
-    curl --location 'https://api.telegram.org/bot<BOT_TOKEN>/setWebhook?remove'
-    ```
-> Gunakan langkah manual ini jika webhook tidak secara otomatis dibuat pada saat program dijalankan
-
-# Contributing
-Feel free to fork this repository, create a pull request, or report any issues. Contributions are welcome!
-
-# License
-This project is licensed under the MIT License - see the LICENSE file for details.
+## ⚙️ Manajemen Webhook Manual (Opsional)
+Jika webhook tidak ter-update otomatis pada saat startup, gunakan command berikut:
+* **Cek Webhook:**
+  ```bash
+  curl --location 'https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/getWebhookInfo'
+  ```
+* **Set Webhook:**
+  ```bash
+  curl --location 'https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook' \
+  --header 'Content-Type: application/json' \
+  --data '{"url": "https://<domain-anda>/api/webhook"}'
+  ```
+* **Hapus Webhook:**
+  ```bash
+  curl --location 'https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook?remove'
+  ```
