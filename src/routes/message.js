@@ -17,6 +17,8 @@ router.post('/', [
 
     body('detail').optional(),
 
+    body('style').optional().isIn(['card', 'minimalist', 'compact']).withMessage('Field style harus berupa card, minimalist, atau compact.'),
+
 ], handleValidationErrors, MessageController.sendMessage);
 
 module.exports = router;
