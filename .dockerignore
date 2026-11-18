@@ -1,0 +1,45 @@
+# Dependency & Log directories
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Environment & Secrets (Sangat Penting: jangan build secrets ke image)
+.env
+.env.*
+!.env.example
+
+# Git & Version Control
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# Serverless & Hosting metadata
+.vercel/
+vercel.json
+
+# Documentation & Markdown files
+docs/
+*.md
+
+# Operating System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace

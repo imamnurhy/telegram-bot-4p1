@@ -183,9 +183,23 @@ const MessageFormatters = {
     }
 };
 
+// Aliaskan 'card' ke 'custom' untuk backward-compatibility dokumentasi
+MessageFormatters.card = MessageFormatters.custom;
+
 const MessageController = {
     sendMessage: async (req, res) => {
-        const { message, code, title, detail, datetime, style = null } = req.body;
+        const {
+            message,
+            code,
+            title,
+            detail,
+            datetime,
+            style = null,
+            thread_id,
+            message_thread_id,
+            silent = false,
+            disable_notification = false
+        } = req.body;
 
         const statusEmoji = getStatusEmoji(code);
         const statusText = getStatusText(code);
@@ -211,17 +225,35 @@ const MessageController = {
             datetime
         });
 
+        // Opsi pengiriman bot Telegram
+        const messageOptions = {
+            parse_mode: 'HTML',
+            disable_notification: Boolean(silent || disable_notification)
+        };
+
+        const targetThreadId = thread_id || message_thread_id;
+        if (targetThreadId) {
+            messageOptions.message_thread_id = parseInt(targetThreadId, 10);
+        }
+
         try {
             const chatId = req.chatId;
+
             // Send the main message first
-            await bot.sendMessage(chatId, text, { parse_mode: 'HTML' });
+            await bot.sendMessage(chatId, text, messageOptions);
 
             // If detail is too long, send it as an attached document
             if (detailFileBuffer) {
-                await bot.sendDocument(chatId, detailFileBuffer, {
+                const docOptions = {
                     caption: `📄 Detail Log untuk <b>${escapedTitle}</b>`,
-                    parse_mode: 'HTML'
-                }, {
+                    parse_mode: 'HTML',
+                    disable_notification: messageOptions.disable_notification
+                };
+                if (targetThreadId) {
+                    docOptions.message_thread_id = messageOptions.message_thread_id;
+                }
+
+                await bot.sendDocument(chatId, detailFileBuffer, docOptions, {
                     filename: detailFileName,
                     contentType: detailContentType
                 });
@@ -235,7 +267,7 @@ const MessageController = {
             console.error('Error sending Telegram message:', error);
             return res.status(500).json({
                 status: 1,
-                message: 'Terjadi kesalahan',
+                message: 'Terjadi kesalahan pengiriman Telegram',
                 error: error.message || error
             });
         }
